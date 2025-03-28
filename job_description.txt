@@ -1,0 +1,47 @@
+Software Engineer - Backend Development
+
+Company: TechInnovate Solutions
+Location: San Francisco, CA
+
+About the Role:
+We are seeking a highly skilled Backend Software Engineer to join our dynamic team. The ideal candidate will be responsible for designing, developing, and maintaining scalable and efficient backend systems.
+
+Key Responsibilities:
+- Design and implement robust, scalable backend services
+- Develop and maintain REST APIs
+- Write clean, maintainable, and efficient code
+- Collaborate with cross-functional teams
+- Participate in code reviews and provide constructive feedback
+- Troubleshoot and resolve software defects
+
+Required Technical Skills:
+- 3-5 years of professional software development experience
+- Proficiency in Python and Go
+- Experience with microservices architecture
+- Strong knowledge of SQL and NoSQL databases
+- Familiarity with cloud platforms (AWS, GCP, or Azure)
+- Experience with containerization (Docker, Kubernetes)
+
+Tech Stack:
+- Programming Languages: Python, Go
+- Databases: PostgreSQL, MongoDB
+- Cloud: AWS
+- Containerization: Docker, Kubernetes
+- Frameworks: FastAPI, gRPC
+
+Soft Skills:
+- Strong problem-solving abilities
+- Excellent communication skills
+- Team player with a collaborative mindset
+- Ability to learn and adapt quickly
+
+Educational Requirements:
+- Bachelor's degree in Computer Science, Software Engineering, or related field
+- Equivalent professional experience will be considered
+
+Benefits:
+- Competitive salary
+- Health, dental, and vision insurance
+- 401(k) matching
+- Remote work options
+- Professional development opportunities
