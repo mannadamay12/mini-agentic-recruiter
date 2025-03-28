@@ -1,6 +1,14 @@
-from agent import RecruiterAgent
+from agent import AdvancedRecruiterAgent
 
-agent = RecruiterAgent()
+agent = AdvancedRecruiterAgent()
 result = agent.run()
-print("Requirements:\n", result.get('requirements', 'No requirements found'))
-print("\nQuestions:\n", result.get('questions', 'No questions generated'))
+
+# Print interview summary
+print("\n--- Interview Summary ---")
+print("Interview Log:")
+for i, entry in enumerate(result.get('interview_log', []), 1):
+    print(f"\nQuestion {i}: {entry['question']}")
+    print(f"Answer: {entry['answer']}")
+    print(f"Evaluation: {entry['evaluation']}")
+
+print(f"\nCandidate Score: {result.get('candidate_score', 0)}")

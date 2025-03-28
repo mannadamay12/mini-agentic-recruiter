@@ -36,3 +36,35 @@ Guidelines for Questions:
 
 Output the questions as a numbered list."""
 )
+
+ANSWER_EVALUATION_PROMPT = PromptTemplate(
+    input_variables=["question", "answer", "context"],
+    template="""You are an expert technical interviewer evaluating a candidate's response.
+
+Previous Interview Context:
+{context}
+
+Current Question: {question}
+Candidate's Answer: {answer}
+
+Evaluate the answer comprehensively:
+1. Technical Accuracy: How well does the answer demonstrate technical knowledge?
+2. Depth of Understanding: Does the candidate show deep insight or just surface-level knowledge?
+3. Communication Skills: Is the answer clear, structured, and articulate?
+4. Problem-Solving Approach: How does the candidate explain their thought process?
+
+Provide a structured evaluation with:
+- A brief assessment of the answer
+- Strengths of the response
+- Areas for improvement
+- A numerical score between 0-10 representing the candidate's performance
+
+Response Format (MUST BE VALID JSON):
+{{
+    "assessment": "...",
+    "strengths": ["...", "..."],
+    "improvements": ["...", "..."],
+    "score": X.X
+}}
+"""
+)
