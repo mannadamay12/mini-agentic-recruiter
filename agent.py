@@ -5,7 +5,7 @@ from langchain.schema import HumanMessage, AIMessage
 import json
 import os
 
-from config import INTERVIEW_LANGUAGE_MODEL
+from config import INTERVIEW_LANGUAGE_MODEL, MAX_INTERVIEW_QUESTIONS
 from prompts import REQUIREMENTS_EXTRACTION_PROMPT, INTERVIEW_QUESTIONS_PROMPT, ANSWER_EVALUATION_PROMPT
 from utils import read_job_description, validate_job_description
 from voice_utils import VoiceInterface 
@@ -43,9 +43,11 @@ class VoiceRecruiterAgent:
         
         # Split questions into a list
         questions_list = [q.strip() for q in questions.split('\n') if q.strip()]
+
+        limited_questions = questions_list[:MAX_INTERVIEW_QUESTIONS]
         
         return {
-            "questions": questions_list,
+            "questions": limited_questions,
             "current_question_index": 0,
             "interview_complete": False
         }

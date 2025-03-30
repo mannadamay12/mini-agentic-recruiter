@@ -5,10 +5,11 @@ import time
 def main():
     # Schedule a Google Meet interview
     print("Setting up interview session...")
+    CANDIDATE_EMAIL = "mannadamay@gmail.com" # Replace with email FROM CANDIDATE
     meet_link = schedule_google_meet(
         summary="AI Recruiter Interview Session",
         description="Automated interview session with AI Recruiter",
-        attendee_emails=["candidate@example.com"],  # Replace with actual email
+        attendee_emails=[CANDIDATE_EMAIL],  
         duration_minutes=30
     )
     
@@ -17,7 +18,11 @@ def main():
         print("Starting interview in 10 seconds...")
         time.sleep(10)  # Give time to join the meeting
     else:
-        print("Could not schedule meeting. Continuing with local interview...")
+        print("Could not schedule meeting.")
+        proceed = input("Continue with local interview without scheduling? (y/n): ").lower()
+        if proceed != 'y':
+            print("Exiting.")
+            return
     
     # Initialize and run the recruiter agent
     agent = VoiceRecruiterAgent()

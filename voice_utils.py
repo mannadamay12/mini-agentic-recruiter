@@ -38,9 +38,12 @@ class VoiceInterface:
         self.temp_dir = 'temp_audio'
         os.makedirs(self.temp_dir, exist_ok=True)
 
-    def record_audio(self):
+    def record_audio(self, silence_limit_sec=2.0):
         """
         Record audio from microphone with silence detection
+
+        Args:
+            silence_limit_sec (float): Seconds of silence after speech to stop recording.
         
         Returns:
             str: Path to recorded audio file
@@ -57,40 +60,76 @@ class VoiceInterface:
 
         frames = []
         silence_counter = 0
-        max_silence_duration = int(self.sample_rate / self.chunk * 60)  # 1 second of silence
+        speaking_started = False
+        max_silence_frames = int((self.sample_rate / self.chunk) * silence_limit_sec)
+        max_record_frames = int((self.sample_rate / self.chunk) * 60)
+        recorded_frames = 0
 
-        for _ in range(0, int(self.sample_rate / self.chunk * self.record_seconds)):
-            data = stream.read(self.chunk)
-            audio_data = np.frombuffer(data, dtype=np.float32)
-            frames.append(audio_data)
+        while recorded_frames < max_record_frames:
+            try:
+                data = stream.read(self.chunk, exception_on_overflow=False) # Prevent overflow exception
+                audio_data = np.frombuffer(data, dtype=np.float32)
+                frames.append(audio_data)
+                recorded_frames += 1
 
-            # Silence detection
-            rms = np.sqrt(np.mean(audio_data**2))
-            if rms < self.silence_threshold:
-                silence_counter += 1
-            else:
-                silence_counter = 0
+                rms = np.sqrt(np.mean(audio_data**2))
 
-            # Stop recording if prolonged silence detected
-            if silence_counter > max_silence_duration:
-                break
+                if rms > self.silence_threshold:
+                    if not speaking_started:
+                        print("Speech detected...")
+                    speaking_started = True
+                    silence_counter = 0
+                elif speaking_started:
+                    # Only count silence after speaking has started
+                    silence_counter += 1
 
-        # Stop and close the stream
+                # Stop recording if sustained silence detected AFTER speech
+                if speaking_started and silence_counter > max_silence_frames:
+                    print(f"Silence detected for over {silence_limit_sec} seconds. Stopping.")
+                    break
+            except IOError as e:
+                 # Handle buffer overflow or other input issues gracefully
+                 print(f"Warning: Input overflowed? ({e}). Continuing...")
+                 # Small sleep might help system catch up, but not ideal
+                 # time.sleep(0.01)
+                 # You might want to discard this chunk or handle it differently
+                 # For now, we just continue reading the next chunk
+                 pass
+
+
+        # If loop finished due to max time without speech starting
+        if not speaking_started and recorded_frames >= max_record_frames:
+             print("No speech detected within the time limit.")
+             # Return an empty path or handle as needed
+             # Clean up stream/pyaudio before returning
+             stream.stop_stream()
+             stream.close()
+             p.terminate()
+             return None # Indicate no valid recording
+
+        print("Recording complete.")
         stream.stop_stream()
         stream.close()
         p.terminate()
 
-        # Save the recorded audio
-        output_path = os.path.join(self.temp_dir, f'recording_{int(time.time())}.wav')
-        
-        # Write to WAV file
-        with wave.open(output_path, 'wb') as wf:
-            wf.setnchannels(self.channels)
-            wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paFloat32))
-            wf.setframerate(self.sample_rate)
-            wf.writeframes(np.array(frames).tobytes())
+        # Trim leading/trailing silence (optional but good)
+        # Find first and last non-silent frames (more advanced VAD needed for accuracy)
+        # For simplicity, we'll skip trimming here, but it's an area for improvement.
 
-        print("Recording complete.")
+        output_path = os.path.join(self.temp_dir, f'recording_{int(time.time())}.wav')
+        try:
+            # Concatenate all frames before writing
+            full_audio_data = np.concatenate(frames, axis=0)
+
+            with wave.open(output_path, 'wb') as wf:
+                wf.setnchannels(self.channels)
+                wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paFloat32)) # Use paFloat32 sample size
+                wf.setframerate(self.sample_rate)
+                wf.writeframes(full_audio_data.tobytes())
+        except Exception as write_error:
+             print(f"Error writing wave file: {write_error}")
+             return None # Indicate failure
+
         return output_path
 
     def transcribe_audio(self, audio_path):

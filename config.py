@@ -10,5 +10,5 @@ if not OPENAI_API_KEY:
     raise ValueError("No OpenAI API key found. Please set OPENAI_API_KEY in .env file.")
 
 # Agent Configuration
-MAX_INTERVIEW_QUESTIONS = 5
+MAX_INTERVIEW_QUESTIONS = 3
 INTERVIEW_LANGUAGE_MODEL = 'gpt-3.5-turbo'
