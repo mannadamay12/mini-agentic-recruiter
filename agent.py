@@ -8,7 +8,7 @@ import os
 from config import INTERVIEW_LANGUAGE_MODEL
 from prompts import REQUIREMENTS_EXTRACTION_PROMPT, INTERVIEW_QUESTIONS_PROMPT, ANSWER_EVALUATION_PROMPT
 from utils import read_job_description, validate_job_description
-from voice_utils import VoiceInterface  # Import the new voice interface
+from voice_utils import VoiceInterface 
 
 class AgentState(TypedDict):
     job_description: str
@@ -18,6 +18,7 @@ class AgentState(TypedDict):
     current_question_index: int
     candidate_score: float
     interview_complete: bool
+    needs_follow_up: bool
 
 class VoiceRecruiterAgent:
     def __init__(self):
@@ -74,7 +75,7 @@ class VoiceRecruiterAgent:
             }
 
     def process_answer(self, state: AgentState):
-        """Process candidate's voice answer and evaluate"""
+        """Process candidate's voice answer and evaluate with follow-up capability"""
         # Record audio answer using voice interface
         print("\n[Interviewer]: Please speak your answer...")
         audio_path = self.voice_interface.record_audio()
@@ -94,35 +95,64 @@ class VoiceRecruiterAgent:
         evaluation = evaluation_chain.invoke({
             "question": state['questions'][state['current_question_index'] - 1],
             "answer": candidate_answer,
-            "context": conversation_context
+            "context": conversation_context,
+            "requirements": state['requirements']
         }).content
         
+        # Parse evaluation
+        try:
+            eval_result = json.loads(evaluation)
+            acknowledgment = eval_result.get('acknowledgment', '')
+            needs_follow_up = eval_result.get('needs_follow_up', False)
+            follow_up = eval_result.get('follow_up', '')
+            score_increment = eval_result.get('score', 0)
+        except Exception as e:
+            print(f"Error parsing evaluation: {e}")
+            acknowledgment = "Thank you for your answer."
+            needs_follow_up = False
+            follow_up = ""
+            score_increment = 0
+        
         # Provide verbal feedback
-        print(f"[Interviewer Evaluation]: {evaluation}")
-        self.voice_interface.text_to_speech(f"Thank you for your answer. {evaluation}")
+        response = acknowledgment
+        if needs_follow_up:
+            response += " " + follow_up
+        
+        print(f"[Interviewer Response]: {response}")
+        self.voice_interface.text_to_speech(response)
         
         # Update interview log
         updated_log = state['interview_log'] + [{
             "question": state['questions'][state['current_question_index'] - 1],
             "answer": candidate_answer,
-            "evaluation": evaluation
+            "evaluation": evaluation,
+            "needs_follow_up": needs_follow_up,
+            "follow_up": follow_up if needs_follow_up else ""
         }]
-        
-        # Parse potential scoring (this is a simplification)
-        try:
-            score_match = json.loads(evaluation)
-            score_increment = score_match.get('score', 0)
-        except:
-            score_increment = 0
-        
-        # Determine next steps
-        is_complete = state['current_question_index'] >= len(state['questions'])
         
         return {
             "interview_log": updated_log,
             "candidate_score": state.get('candidate_score', 0) + score_increment,
-            "interview_complete": is_complete
+            "needs_follow_up": needs_follow_up,
+            "interview_complete": state['current_question_index'] >= len(state['questions']) and not needs_follow_up
         }
+
+    def handle_follow_up(self, state: AgentState):
+        """Handle follow-up questions based on candidate's previous answer"""
+        # If no follow-up needed, go back to asking the next question
+        if not state.get('needs_follow_up', False):
+            return {}
+        
+        # Get the last entry from the interview log
+        last_entry = state['interview_log'][-1]
+        follow_up = last_entry.get('follow_up', '')
+        
+        # Speak the follow-up question
+        print(f"\n[Interviewer Follow-up]: {follow_up}")
+        self.voice_interface.text_to_speech(follow_up)
+        
+        # Reset the needs_follow_up flag
+        return {"needs_follow_up": False}
 
     def generate_interview_summary(self, state: AgentState):
         """Generate a summary of the interview"""
@@ -151,6 +181,7 @@ class VoiceRecruiterAgent:
         workflow.add_node("generate_questions", self.generate_questions)
         workflow.add_node("ask_question", self.ask_question)
         workflow.add_node("process_answer", self.process_answer)
+        workflow.add_node("handle_follow_up", self.handle_follow_up)
 
         # Set edges
         workflow.set_entry_point("start")
@@ -168,14 +199,20 @@ class VoiceRecruiterAgent:
             }
         )
         
+        # Add conditional edge for handling follow-ups
         workflow.add_conditional_edges(
             "process_answer",
-            lambda state: "end" if state['interview_complete'] else "ask_question",
+            lambda state: "handle_follow_up" if state.get('needs_follow_up', False) else 
+                        ("end" if state['interview_complete'] else "ask_question"),
             {
+                "handle_follow_up": "handle_follow_up",
                 "ask_question": "ask_question",
                 "end": END
             }
         )
+        
+        # After follow-up, go back to process_answer
+        workflow.add_edge("handle_follow_up", "process_answer")
 
         return workflow.compile()
 
