@@ -3,10 +3,12 @@ from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
 import json
+import os
 
 from config import INTERVIEW_LANGUAGE_MODEL
 from prompts import REQUIREMENTS_EXTRACTION_PROMPT, INTERVIEW_QUESTIONS_PROMPT, ANSWER_EVALUATION_PROMPT
 from utils import read_job_description, validate_job_description
+from voice_utils import VoiceInterface  # Import the new voice interface
 
 class AgentState(TypedDict):
     job_description: str
@@ -17,9 +19,10 @@ class AgentState(TypedDict):
     candidate_score: float
     interview_complete: bool
 
-class AdvancedRecruiterAgent:
+class VoiceRecruiterAgent:
     def __init__(self):
         self.llm = ChatOpenAI(model=INTERVIEW_LANGUAGE_MODEL)
+        self.voice_interface = VoiceInterface()  # Initialize voice interface
         self.graph = self.build_graph()
 
     def extract_requirements(self, state: AgentState):
@@ -47,25 +50,38 @@ class AdvancedRecruiterAgent:
         }
 
     def ask_question(self, state: AgentState):
-        """Select and prepare the next interview question"""
+        """Select and prepare the next interview question using voice"""
         questions = state['questions']
         current_index = state['current_question_index']
         
         if current_index < len(questions):
             current_question = questions[current_index]
-            print(f"\n[Interviewer]: {current_question}")
+            
+            # Use voice interface to speak the question
+            print(f"\n[Interviewer Voice]: {current_question}")
+            self.voice_interface.text_to_speech(current_question)
+            
             return {
                 "current_question_index": current_index + 1
             }
         else:
+            # Final summary if interview is complete
+            summary = self.generate_interview_summary(state)
+            self.voice_interface.text_to_speech(summary)
+            
             return {
                 "interview_complete": True
             }
 
     def process_answer(self, state: AgentState):
-        """Process candidate's answer and evaluate"""
-        # Simulate getting candidate's answer (replace with actual input in future)
-        candidate_answer = input("[Candidate]: ")
+        """Process candidate's voice answer and evaluate"""
+        # Record audio answer using voice interface
+        print("\n[Interviewer]: Please speak your answer...")
+        audio_path = self.voice_interface.record_audio()
+        
+        # Transcribe the audio answer
+        candidate_answer = self.voice_interface.transcribe_audio(audio_path)
+        print(f"[Transcribed Answer]: {candidate_answer}")
         
         # Prepare conversation context
         conversation_context = "\n".join([
@@ -80,6 +96,10 @@ class AdvancedRecruiterAgent:
             "answer": candidate_answer,
             "context": conversation_context
         }).content
+        
+        # Provide verbal feedback
+        print(f"[Interviewer Evaluation]: {evaluation}")
+        self.voice_interface.text_to_speech(f"Thank you for your answer. {evaluation}")
         
         # Update interview log
         updated_log = state['interview_log'] + [{
@@ -103,6 +123,23 @@ class AdvancedRecruiterAgent:
             "candidate_score": state.get('candidate_score', 0) + score_increment,
             "interview_complete": is_complete
         }
+
+    def generate_interview_summary(self, state: AgentState):
+        """Generate a summary of the interview"""
+        try:
+            summary_prompt = f"""
+            Provide a concise summary of the interview based on the following details:
+            - Total Questions: {len(state['questions'])}
+            - Candidate Score: {state['candidate_score']}
+            - Interview Log: {state['interview_log']}
+            
+            Highlight the candidate's strengths, areas of improvement, and overall performance.
+            """
+            
+            summary_chain = self.llm.invoke(summary_prompt)
+            return summary_chain.content
+        except Exception as e:
+            return f"Interview summary could not be generated. Error: {str(e)}"
 
     def build_graph(self):
         """Build the interview agent workflow graph"""
@@ -146,6 +183,9 @@ class AdvancedRecruiterAgent:
         """Run the interview agent"""
         if not job_description:
             job_description = read_job_description()
+        
+        # Welcome message via voice
+        self.voice_interface.text_to_speech("Welcome to the interview. Let's begin!")
         
         initial_state = {
             "job_description": job_description,

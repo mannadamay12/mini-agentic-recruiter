@@ -1,14 +1,13 @@
-from agent import AdvancedRecruiterAgent
+from agent import VoiceRecruiterAgent
 
-agent = AdvancedRecruiterAgent()
+agent = VoiceRecruiterAgent()
 result = agent.run()
 
-# Print interview summary
-print("\n--- Interview Summary ---")
-print("Interview Log:")
+# Print final interview summary
+print("\n--- Final Interview Summary ---")
+print(f"Candidate Score: {result.get('candidate_score', 0)}")
+print("\nInterview Log:")
 for i, entry in enumerate(result.get('interview_log', []), 1):
     print(f"\nQuestion {i}: {entry['question']}")
     print(f"Answer: {entry['answer']}")
     print(f"Evaluation: {entry['evaluation']}")
-
-print(f"\nCandidate Score: {result.get('candidate_score', 0)}")
