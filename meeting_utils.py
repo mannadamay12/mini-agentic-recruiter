@@ -5,6 +5,10 @@ from google.auth.transport.requests import Request
 from datetime import datetime, timedelta
 import os
 import pickle
+import time
+import webbrowser
+import subprocess
+import platform
 
 # Google Calendar API scopes
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -52,8 +56,8 @@ def schedule_google_meet(summary, description, attendee_emails, duration_minutes
         creds = get_credentials()
         service = build('calendar', 'v3', credentials=creds)
         
-        # Set meeting time (start 5 minutes from now)
-        start_time = datetime.utcnow() + timedelta(minutes=5)
+        # Set meeting time (start immediately)
+        start_time = datetime.utcnow() + timedelta(minutes=1)
         end_time = start_time + timedelta(minutes=duration_minutes)
         
         # Format times for Google Calendar API
@@ -104,3 +108,48 @@ def schedule_google_meet(summary, description, attendee_emails, duration_minutes
     except Exception as e:
         print(f"Error scheduling meeting: {e}")
         return None
+
+def join_google_meet(meet_link):
+    """
+    Automatically open and join a Google Meet session.
+    
+    This function will open the Google Meet link in the default browser
+    and help simulate the AI agent "joining" the meeting.
+    
+    Args:
+        meet_link (str): The Google Meet URL to join
+        
+    Returns:
+        bool: True if the meeting was opened, False otherwise
+    """
+    try:
+        # Open the meeting in the default browser
+        webbrowser.open(meet_link)
+        
+        # Delay to allow browser to load
+        time.sleep(3)
+        
+        # Simulate joining the meeting (click join button via keyboard shortcuts)
+        # This is a simplified approach - more sophisticated browser automation 
+        # would require Selenium or similar tools
+        
+        # Send keyboard shortcut to join meeting (different per OS)
+        system = platform.system()
+        
+        if system == "Darwin":  # macOS
+            # Using AppleScript to simulate keyboard shortcuts
+            subprocess.run(["osascript", "-e", 'tell application "System Events" to keystroke "j" using {command down}'])
+        elif system == "Windows":
+            # Using AutoHotkey or similar would be more reliable
+            subprocess.run(["powershell", "-command", "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^j')"])
+        elif system == "Linux":
+            # Using xdotool for Linux
+            subprocess.run(["xdotool", "key", "ctrl+j"])
+        
+        print("Attempting to join meeting automatically...")
+        return True
+        
+    except Exception as e:
+        print(f"Error joining meeting: {e}")
+        print("Please join the meeting manually using the link")
+        return False

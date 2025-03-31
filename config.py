@@ -12,3 +12,4 @@ if not OPENAI_API_KEY:
 # Agent Configuration
 MAX_INTERVIEW_QUESTIONS = 3
 INTERVIEW_LANGUAGE_MODEL = 'gpt-3.5-turbo'
+AGENT_VOICE = 'alloy'
