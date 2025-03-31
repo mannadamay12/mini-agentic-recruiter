@@ -10,7 +10,7 @@ import time
 
 class VoiceInterface:
     def __init__(self, 
-                 sample_rate=16000, 
+                 sample_rate=48000, 
                  channels=1, 
                  chunk=1024, 
                  record_seconds=5, 
@@ -49,14 +49,15 @@ class VoiceInterface:
             str: Path to recorded audio file
         """
         print("Listening... (speak now)")
-        
+        # target_input_device_index = 1
         # Initialize PyAudio
         p = pyaudio.PyAudio()
-        stream = p.open(format=pyaudio.paFloat32,
+        stream = p.open(format=pyaudio.paInt16,
                         channels=self.channels,
                         rate=self.sample_rate,
                         input=True,
-                        frames_per_buffer=self.chunk)
+                        frames_per_buffer=self.chunk,
+                        input_device_index=1)
 
         frames = []
         silence_counter = 0
@@ -68,11 +69,11 @@ class VoiceInterface:
         while recorded_frames < max_record_frames:
             try:
                 data = stream.read(self.chunk, exception_on_overflow=False) # Prevent overflow exception
-                audio_data = np.frombuffer(data, dtype=np.float32)
+                audio_data = np.frombuffer(data, dtype=np.int16)
                 frames.append(audio_data)
                 recorded_frames += 1
 
-                rms = np.sqrt(np.mean(audio_data**2))
+                rms = np.sqrt(np.nanmean(audio_data**2))
 
                 if rms > self.silence_threshold:
                     if not speaking_started:
@@ -119,13 +120,13 @@ class VoiceInterface:
         output_path = os.path.join(self.temp_dir, f'recording_{int(time.time())}.wav')
         try:
             # Concatenate all frames before writing
-            full_audio_data = np.concatenate(frames, axis=0)
+            # full_audio_data = np.concatenate(frames, axis=0)
 
             with wave.open(output_path, 'wb') as wf:
                 wf.setnchannels(self.channels)
-                wf.setsampwidth(pyaudio.PyAudio().get_sample_size(pyaudio.paFloat32)) # Use paFloat32 sample size
+                wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
                 wf.setframerate(self.sample_rate)
-                wf.writeframes(full_audio_data.tobytes())
+                wf.writeframes(np.array(frames).tobytes())
         except Exception as write_error:
              print(f"Error writing wave file: {write_error}")
              return None # Indicate failure

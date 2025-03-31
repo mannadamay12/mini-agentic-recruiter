@@ -114,11 +114,8 @@ class VoiceRecruiterAgent:
             needs_follow_up = False
             follow_up = ""
             score_increment = 0
-        
-        # Provide verbal feedback
+
         response = acknowledgment
-        if needs_follow_up:
-            response += " " + follow_up
         
         print(f"[Interviewer Response]: {response}")
         self.voice_interface.text_to_speech(response)
@@ -224,7 +221,7 @@ class VoiceRecruiterAgent:
             job_description = read_job_description()
         
         # Welcome message via voice
-        self.voice_interface.text_to_speech("Welcome to the interview. Let's begin!")
+        self.voice_interface.text_to_speech("Hi there! Thanks for joining the interview, let's get started!")
         
         initial_state = {
             "job_description": job_description,

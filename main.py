@@ -1,28 +1,28 @@
+import time
+import webbrowser
 from agent import VoiceRecruiterAgent
 from meeting_utils import schedule_google_meet
-import time
 
 def main():
     # Schedule a Google Meet interview
     print("Setting up interview session...")
-    CANDIDATE_EMAIL = "mannadamay@gmail.com" # Replace with email FROM CANDIDATE
     meet_link = schedule_google_meet(
         summary="AI Recruiter Interview Session",
         description="Automated interview session with AI Recruiter",
-        attendee_emails=[CANDIDATE_EMAIL],  
+        attendee_emails=["mannadamay@gmail.com"],  # Replace with actual email
         duration_minutes=30
     )
     
     if meet_link:
         print(f"Interview will begin shortly. Join the meeting at: {meet_link}")
-        print("Starting interview in 10 seconds...")
-        time.sleep(10)  # Give time to join the meeting
+        # Open the meeting link in the default browser
+        print("Opening meeting in your default browser...")
+        webbrowser.open(meet_link)
+        # Wait for a period (simulate candidate joining)
+        print("Waiting for candidate to join the meeting...")
+        time.sleep(20)  # Adjust the waiting time as needed
     else:
-        print("Could not schedule meeting.")
-        proceed = input("Continue with local interview without scheduling? (y/n): ").lower()
-        if proceed != 'y':
-            print("Exiting.")
-            return
+        print("Could not schedule meeting. Continuing with local interview...")
     
     # Initialize and run the recruiter agent
     agent = VoiceRecruiterAgent()
