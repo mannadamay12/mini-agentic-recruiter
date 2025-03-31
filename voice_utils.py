@@ -72,8 +72,11 @@ class VoiceInterface:
                 audio_data = np.frombuffer(data, dtype=np.int16)
                 frames.append(audio_data)
                 recorded_frames += 1
-
-                rms = np.sqrt(np.nanmean(audio_data**2))
+                mean_squared = np.nanmean(audio_data**2)
+                if np.isnan(mean_squared) or mean_squared < 0:
+                    rms = 0
+                else:
+                    rms = np.sqrt(mean_squared)
 
                 if rms > self.silence_threshold:
                     if not speaking_started:
